@@ -1,0 +1,151 @@
+openapi: 3.0.0
+info:
+  title: Inventory Management API
+  description: API for managing users and products in an inventory system.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api
+
+components:
+  schemas:
+    UserLogin:
+      type: object
+      properties:
+        username:
+          type: string
+          example: "admin"
+        password:
+          type: string
+          example: "adminpassword"
+    Product:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Laptop Pro"
+        type:
+          type: string
+          example: "Electronics"
+        sku:
+          type: string
+          example: "LP-001"
+        imageUrl:
+          type: string
+          example: "http://example.com/laptop.jpg"
+        description:
+          type: string
+          example: "A powerful new laptop."
+        quantity:
+          type: integer
+          example: 25
+        price:
+          type: number
+          example: 1299.99
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '201':
+          description: User registered successfully
+        '409':
+          description: User with this username already exists
+
+  /auth/login:
+    post:
+      summary: Login a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful, returns JWT token
+        '401':
+          description: Invalid username or password
+
+  /products:
+    post:
+      summary: Add a new product (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product added successfully
+        '400':
+          description: Bad request or SKU already exists
+        '403':
+          description: Access denied. Admin role required.
+    get:
+      summary: Get a list of all products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: A paginated list of products
+        '401':
+          description: Unauthorized
+
+  /products/{id}/quantity:
+    put:
+      summary: Update product quantity (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the product to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  example: 50
+      responses:
+        '200':
+          description: Product quantity updated successfully
+        '403':
+          description: Access denied. Admin role required.
+        '404':
+          description: Product not found
